@@ -23,7 +23,7 @@ const Map = () => {
         />
       </MapView>
 
-      <Link href="/">back</Link>
+      <Link style={styles.card} href="/">back</Link>
 
     </View>
   );
@@ -38,4 +38,10 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  card: {
+    backgroundColor: '#eee',
+    padding: 20,
+    borderRadius: 5,
+    boxShadow: '4px 4px rgba(0,0,0,0.1)'
+  }
 })
