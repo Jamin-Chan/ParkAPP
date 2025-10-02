@@ -18,7 +18,7 @@ const Home = () => {
             <Text>Hello this is testing 2</Text>
         </View>
 
-        <Link href="/map">map</Link>
+        <Link style={styles.card} href="/map">map</Link>
 
     </View>
   )
