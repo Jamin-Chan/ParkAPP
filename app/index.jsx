@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from 'react-native'
-
+import { Link } from 'expo-router'
 import CarIcon from '../assets/img/CarIcon.jpg'
 
 import React from 'react'
@@ -17,6 +17,8 @@ const Home = () => {
         <View style={styles.card}>
             <Text>Hello this is testing 2</Text>
         </View>
+
+        <Link href="/map">map</Link>
 
     </View>
   )
