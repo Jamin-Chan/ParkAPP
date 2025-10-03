@@ -42,3 +42,4 @@ yarn-error.*
 
 # important secrets and info
 important.txt
+GoogleService-info.plist
