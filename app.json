@@ -14,14 +14,17 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "googleServicesFIle": "./GoogleService-Info.plist",
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFIle": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.ParkAPP"
     },
     "web": {
       "favicon": "./assets/favicon.png"
