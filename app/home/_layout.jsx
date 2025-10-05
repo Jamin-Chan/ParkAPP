@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Image, useColorScheme } from 'react-native'
 import { Link, Slot, Stack, Tabs } from 'expo-router'
-import CarIcon from '../assets/img/CarIcon.jpg'
-import { Colors } from "../constants/Colors"
+//import CarIcon from '../../assets/img/CarIcon.jpg'
+import { Colors } from "../../constants/Colors"
 
 import React from 'react'
 import { setStatusBarBackgroundColor } from 'expo-status-bar'
