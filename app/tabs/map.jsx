@@ -23,7 +23,7 @@ const Map = () => {
         />
       </MapView>
 
-      <Link style={styles.card} href="/">back</Link>
+      <Link style={styles.card} href="/index">back</Link>
 
     </View>
   );
