@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from 'react-native'
-import React from "react";
+import {React, useEffect} from "react";
 import { Link } from 'expo-router'
 import MapView, { Marker } from "react-native-maps";
 
