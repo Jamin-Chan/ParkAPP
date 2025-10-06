@@ -9,30 +9,6 @@ import React, { useState } from 'react'
 
 const Home = () => {
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-
-
-    const signIn = async () => {
-        try {
-        const user = await signInWithEmailAndPassword(auth, email, password)
-        if (user) router.replace('/map');
-        } catch (error) {
-        console.log(error)
-        alert('Sign in failed: ' + error.message);
-        }
-    }
-
-    const signUp = async () => {
-        try {
-        const user = await createUserWithEmailAndPassword(auth, email, password)
-        if (user) router.replace('/map');
-        } catch (error) {
-        console.log(error)
-        alert('Sign in failed: ' + error.message);
-        }
-    }
-
   return (
     <View style={styles.container}>
         <Image source={CarIcon} style={styles.img} />
@@ -44,7 +20,7 @@ const Home = () => {
         <View style={styles.card}>
             <Text>Hello this is testing 2</Text>
         </View>
-        <Link style={styles.card} href="/map">map</Link>
+        <Link style={styles.card} href="/tabs/map">map</Link>
 
     </View>
   )
