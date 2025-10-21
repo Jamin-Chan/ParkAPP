@@ -9,7 +9,7 @@
 
 const {setGlobalOptions} = require("firebase-functions");
 const {onRequest} = require("firebase-functions/https");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
 // For cost control, you can set the maximum number of containers that can be
@@ -34,5 +34,6 @@ exports.helloWorld = onRequest((request, response) => {
 
 exports.everyMinuteJob = onSchedule("every 1 minutes", async (event) => {
   const time = new Date().toLocaleTimeString();
+  logger.info(`🕒 everyMinuteJob triggered at ${time}`, {structuredData: true});
   console.log(`🕒 everyMinuteJob triggered at ${time}`);
 });
