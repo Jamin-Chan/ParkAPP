@@ -3,11 +3,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'expo-router'
 import MapView, { Marker } from "react-native-maps";
 import * as Location from 'expo-location';
+import { collection, getDocs, query, Timestamp, orderBy} from "firebase/firestore";
+import { db } from '../../FirebaseConfig'
 
 
 const Map = () => {
   const [location, setLocation] = useState(null);
   const mapRef = useRef(null);
+  const [testPin, setTestPin] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -16,7 +19,24 @@ const Map = () => {
         Alert.alert('Permission denied', 'Location access is required to show your position on the map.');
         return;
       }
-
+      // querying pins from "pins" collection for parking officers
+      // confirmation that it works
+       try {
+        const q = query(
+          collection(db, "pins"),
+          orderBy("creation_date", "desc")
+        );
+        const snapshot = await getDocs(q);
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        console.log(data);
+        const pin = { id: doc.id, creation_date: data.creation_date,  coords: data.coords};
+        console.log("pin", pin);
+        setTestPin(pin);
+      } catch (e) {
+        console.error("Fetch failed:", e);
+      }
+      
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
 
@@ -31,8 +51,6 @@ const Map = () => {
       }
     })();
   }, []);
-
-
   return (
     // <View style={styles.container}>
     //   <MapView
@@ -51,15 +69,14 @@ const Map = () => {
     //     />
     //   </MapView>
     // </View>
-    
     <View style={styles.container}>
       {location && (
         <MapView
           ref={mapRef}
           style={styles.map}
           initialRegion={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: testPin.coords.latitude,
+            longitude: testPin.coords?.longitude,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
