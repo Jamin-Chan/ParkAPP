@@ -47,37 +47,93 @@ const db = getFirestore();
 
 exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     console.log("Fetching CSV from SFMTA...");
-    const csvUrl = "https://data.sfgov.org/resource/8vzz-qzz9.csv?$limit=99999999999";
+    const meterLoc = "https://data.sfgov.org/resource/8vzz-qzz9.csv?$limit=99999999999";
+    const meterPrice = "https://data.sfgov.org/resource/qq7v-hds4.csv?$limit=99999999999";
 
-    const response = await fetch(csvUrl);
+    const response = await fetch(meterLoc);
     const csvText = await response.text();
+
+    const response2 = await fetch(meterPrice);
+    const csvText2 = await response2.text();
 
     console.log("Parsing CSV...");
     const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    const parsed2 = Papa.parse(csvText2, { header: true, skipEmptyLines: true });
 
     if (!parsed || !parsed.data || !Array.isArray(parsed.data)) {
       throw new Error("CSV parse failed — invalid structure.");
     }
     
-    const data = parsed.data;
-    console.log(`✅ Parsed ${data.length} rows`);
+    const locationData = parsed.data;
+    const priceData = parsed2.data;
+
+    console.log(`✅ Parsed ${locationData.length} rows`);
+    console.log(`✅ Parsed ${priceData.length} rows`);
     //console.log(`Fetched ${meterData.length} records`);
 
     // group by post_id
     const meters = {};
 
-    for (const row of data) {
+
+    for (const row of locationData) {
       const post_id = row.post_id;
       if (!post_id) continue;
 
-      if (!meters[post_id]) {
-        meters[post_id] = {
-          coord: {
-            lat: parseFloat(row.latitude),
-            lon: parseFloat(row.longitude),
-          }
-        };
+      meters[post_id] = {
+        coord: {
+          lat: parseFloat(row.lat || row.latitude || row.y),
+          lon: parseFloat(row.lon || row.longitude || row.x),
+        },
+        price: {
+          mon: Array(48).fill(0),
+          tues: Array(48).fill(0),
+          weds: Array(48).fill(0),
+          thurs: Array(48).fill(0),
+          fri: Array(48).fill(0),
+          sat: Array(48).fill(0),
+          sun: Array(48).fill(0),
+        },
+      };
+    }
+
+    // Helper: convert "4:30" → slot index
+    const timeToSlot = (timeStr) => {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(":").map(Number);
+      return h * 2 + (m >= 30 ? 1 : 0);
+    };
+
+    // Map abbreviated days to Firestore keys
+    const dayMap = {
+      Mo: "mon",
+      Tu: "tues",
+      We: "weds",
+      Th: "thurs",
+      Fr: "fri",
+      Sa: "sat",
+      Su: "sun",
+    };
+
+    // Process price data
+    for (const row of priceData) {
+      const post_id = row.postid;
+      if (!post_id || !meters[post_id]) continue;
+
+      const dayKey = dayMap[row.dayofweek];
+      if (!dayKey) continue;
+
+      const start = timeToSlot(row.starttime);
+      const end = timeToSlot(row.endtime);
+
+      // You can parse rate from another column — for example, "rate" or "price"
+      const rate = parseFloat(row.hourlyrate || row.price || 0);
+
+      // Fill in half-hour blocks with rate
+      for (let i = start; i < end; i++) {
+        meters[post_id].price[dayKey][i] = rate;
       }
+    }
+    
 
     //   // Parse the schedule type only if it's "OP" (operational)
     //   if (row.schedule_type !== "OP") continue;
@@ -97,8 +153,24 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     // for (const [post_id, meter] of Object.entries(meters)) {
     //   const ref = doc(db, "parking_meters", post_id);
     //   await setDoc(ref, meter);
+    //console.log(meters)
+    console.log("Sample row:", meters["221-32010"]);
+
+    let batch = db.batch();
+    let writeCount = 0;
+
+    for (const [post_id, meter] of Object.entries(meters)) {
+      const ref = db.collection("meters").doc(post_id);
+      batch.set(ref, meter);
+      writeCount++;
+
+      // Commit every 500 writes
+      if (writeCount % 500 === 0) {
+        console.log(`Committing batch at ${writeCount} documents...`);
+        await batch.commit();
+        batch = db.batch(); // start a new batch
+      }
     }
-    console.log(meters)
 
     console.log("✅ All parking meters stored in Firestore");
 
