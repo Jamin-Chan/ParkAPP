@@ -81,8 +81,8 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
 
       meters[post_id] = {
         coord: {
-          lat: parseFloat(row.lat || row.latitude || row.y),
-          lon: parseFloat(row.lon || row.longitude || row.x),
+          lat: parseFloat((row.lat || row.latitude || row.y)),
+          lon: parseFloat((row.lon || row.longitude || row.x)),
         },
         price: {
           mon: Array(48).fill(0),

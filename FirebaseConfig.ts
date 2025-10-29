@@ -6,7 +6,7 @@ import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN } from '@env';
 import { getFirestore } from 'firebase/firestore';
-import firestore from '@react-native-firebase/firestore';
+// import firestore from '@react-native-firebase/firestore';
 
 
 // TODO: Add SDKs for Firebase products that you want to use

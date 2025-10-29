@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View, Image, Alert } from 'react-native'
+import { StyleSheet, Text, View, Image, Alert, ActivityIndicator, Callout } from 'react-native'
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'expo-router'
 import MapView, { Marker } from "react-native-maps";
 import * as Location from 'expo-location';
-import { collection, getDocs, query, Timestamp, orderBy} from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, Timestamp, orderBy, limit} from "firebase/firestore";
 import { db } from '../../FirebaseConfig'
 
 
@@ -11,6 +11,9 @@ const Map = () => {
   const [location, setLocation] = useState(null);
   const mapRef = useRef(null);
   const [testPin, setTestPin] = useState(null);
+
+  const [meters, setMeters] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -51,6 +54,91 @@ const Map = () => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const fetchMeters = async () => {
+      console.log("fetching meters")
+      // try {
+      //   const snapshot = await getDocs(collection(db, 'meters'));
+      //   const data = snapshot.docs.map(doc => ({
+      //     id: doc.id, // This gets the document ID (like "Address")
+      //     coord: doc.data().coord, // This gets the {lat, lon} object
+      //     price: doc.data().price  // This gets the price object with day arrays
+      //   }));
+      //   console.log(`Loaded ${data.length} meters`);
+      //   console.log("Sample meter:", data[0]); // Log first meter to verify structure
+      // } catch (error) {
+      //   console.error('Error fetching meters:', error);
+      // } finally {
+      //   setLoading(false);
+      // }
+
+    try {
+      const snapshot = await getDocs(collection(db, 'meters')); //eRRRORRRRR HERRE
+      console.log(`Found ${snapshot.docs.length} documents`);
+      
+      const metersArray = [];
+      
+      for (const doc of snapshot.docs) {
+        try {
+          const data = doc.data();
+          metersArray.push({
+            id: doc.id,
+            coord: data.coord || { lat: 0, lon: 0 },
+            price: data.price || {}
+          });
+        } catch (docError) {
+          console.warn(`Error processing document ${doc.id}:`, docError);
+          // Skip this document but continue with others
+        }
+      }
+      
+      console.log(`Successfully loaded ${metersArray.length} meters`);
+      setMeters(metersArray);
+      
+    } catch (error) {
+      console.error('Error fetching meters:', error);
+      setMeters([]);
+    } finally {
+      setLoading(false);
+    }
+
+    };
+    fetchMeters();
+  }, []);
+
+  const getCurrentPrice = (priceData) => {
+    if (!priceData) return 0;
+    
+    try{
+      const now = new Date();
+      const dayNames = ['sun', 'mon', 'tues', 'weds', 'thurs', 'fri', 'sat'];
+      const dayKey = dayNames[now.getDay()];
+
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const halfHourIndex = hour * 2 + (minute >= 30 ? 1 : 0);
+
+      const prices = priceData[dayKey];
+      if (!prices || !Array.isArray(prices)) return 0;
+
+      const price = prices[halfHourIndex] ?? 0;
+    } catch (error){
+      console.log("price error")
+    }
+    return price;
+  };
+
+   if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text>Loading map...</Text>
+      </View>
+    );
+  }
+
+
   return (
     // <View style={styles.container}>
     //   <MapView
@@ -82,11 +170,22 @@ const Map = () => {
           }}
           showsUserLocation={true}
           followsUserLocation={false} // Optional: Map follows user's location as they move
-        />
+        >
+
+          {meters.slice(0, 10).map((meter) => (
+            <Marker
+              key={meter.id}
+              coordinate={{
+                latitude: meter.coord?.lat || 0,
+                longitude: meter.coord?.lon || 0,
+              }}
+              title={meter.id}
+              description="Here’s a marker!"
+            />
+          ))}
+        </MapView>
       )}
     </View>
-
-
   );
 }
 
