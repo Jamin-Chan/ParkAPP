@@ -57,9 +57,8 @@ const Map = () => {
 
   useEffect(() => {
     const fetchMeters = async () => {
-      console.log("fetching meters")
       // try {
-      //   const snapshot = await getDocs(collection(db, 'meters'));
+      //   const snapshot = await getDocs(collection(db, 'meters').limit(1000));
       //   const data = snapshot.docs.map(doc => ({
       //     id: doc.id, // This gets the document ID (like "Address")
       //     coord: doc.data().coord, // This gets the {lat, lon} object
@@ -74,7 +73,9 @@ const Map = () => {
       // }
 
     try {
-      const snapshot = await getDocs(collection(db, 'meters')); //eRRRORRRRR HERRE
+      console.log("fetching meters")
+      const snapshot = await getDocs(query(collection(db, 'meters'), limit(10000))); //eRRRORRRRR HERRE
+      console.log("fetching meters ling")
       console.log(`Found ${snapshot.docs.length} documents`);
       
       const metersArray = [];

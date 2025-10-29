@@ -15,6 +15,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const {setGlobalOptions} = require("firebase-functions");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
 
 const METERS_API = "https://data.sfgov.org/resource/8vzz-qzz9.json"; 
 const RATES_API = "https://data.sfgov.org/resource/fwjv-32uk.json"; 
@@ -74,7 +75,6 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     // group by post_id
     const meters = {};
 
-
     for (const row of locationData) {
       const post_id = row.post_id;
       if (!post_id) continue;
@@ -119,20 +119,68 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
       const post_id = row.postid;
       if (!post_id || !meters[post_id]) continue;
 
-      const dayKey = dayMap[row.dayofweek];
-      if (!dayKey) continue;
+      if(row.scheduletype == "OP"){
+        const dayKey = dayMap[row.dayofweek];
+        if (!dayKey) continue;
 
-      const start = timeToSlot(row.starttime);
-      const end = timeToSlot(row.endtime);
+        const start = timeToSlot(row.starttime);
+        const end = timeToSlot(row.endtime);
 
-      // You can parse rate from another column — for example, "rate" or "price"
-      const rate = parseFloat(row.hourlyrate || row.price || 0);
+        // You can parse rate from another column — for example, "rate" or "price"
+        const rate = parseFloat(row.hourlyrate || 0);
 
-      // Fill in half-hour blocks with rate
-      for (let i = start; i < end; i++) {
-        meters[post_id].price[dayKey][i] = rate;
+        // Fill in half-hour blocks with rate
+        for (let i = start; i < end; i++) {
+          meters[post_id].price[dayKey][i] = rate;
+        }
       }
     }
+
+    const updatedMeters = {};
+
+    for (const [post_id, meter] of Object.entries(meters)) {
+      if (!post_id || !meter) continue;
+
+      const meterCopy = { ...meter };
+      const price = { ...meterCopy.price };
+      
+      // Check if all weekdays (Mon-Fri) have identical pricing
+      const weekdays = ["mon", "tues", "weds", "thurs", "fri"];
+      const allWeekdaysSame = weekdays.every(day => 
+        price[day] && 
+        JSON.stringify(price[day]) === JSON.stringify(price[weekdays[0]])
+      );
+
+      if (allWeekdaysSame && weekdays[0] in price) {
+        // Replace individual weekdays with combined 'weekday' array
+        price.weekday = [...price[weekdays[0]]];
+        
+        // Remove individual weekday arrays
+        weekdays.forEach(day => {
+          delete price[day];
+        });
+        
+        //console.log(`Combined weekdays for meter ${post_id}`);
+      }
+
+      // Check if ANY day is all zeros (free parking)
+      const allDays = ["mon", "tues", "weds", "thurs", "fri", "sat", "sun", "weekday"];
+      
+      allDays.forEach(day => {
+        if (price[day] && Array.isArray(price[day]) && price[day].every(rate => rate === 0)) {
+          price[day] = "free";
+          //console.log(`${day} is free for meter ${post_id}`);
+        }
+      });
+
+      // Update the meter with optimized price structure
+      updatedMeters[post_id] = {
+        ...meterCopy,
+        price: price
+      };
+    }
+
+    // for (const row of meters) {
     
 
     //   // Parse the schedule type only if it's "OP" (operational)
@@ -159,7 +207,7 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     let batch = db.batch();
     let writeCount = 0;
 
-    for (const [post_id, meter] of Object.entries(meters)) {
+    for (const [post_id, meter] of Object.entries(updatedMeters)) {
       const ref = db.collection("meters").doc(post_id);
       batch.set(ref, meter);
       writeCount++;
