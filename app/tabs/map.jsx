@@ -74,7 +74,7 @@ const Map = () => {
 
     try {
       console.log("fetching meters")
-      const snapshot = await getDocs(query(collection(db, 'meters'), limit(10000))); //eRRRORRRRR HERRE
+      const snapshot = await getDocs(query(collection(db, 'meters'), limit(100))); //eRRRORRRRR HERRE
       console.log("fetching meters ling")
       console.log(`Found ${snapshot.docs.length} documents`);
       
@@ -173,7 +173,7 @@ const Map = () => {
           followsUserLocation={false} // Optional: Map follows user's location as they move
         >
 
-          {meters.slice(0, 10).map((meter) => (
+          {meters.slice(0,10).map((meter) => (
             <Marker
               key={meter.id}
               coordinate={{

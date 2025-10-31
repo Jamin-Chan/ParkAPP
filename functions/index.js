@@ -11,6 +11,7 @@ const Papa = require("papaparse");
 const { initializeApp, applicationDefault } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
+const geohash = require('ngeohash');
 
 const {setGlobalOptions} = require("firebase-functions");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
@@ -79,10 +80,14 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
       const post_id = row.post_id;
       if (!post_id) continue;
 
+      const lat = parseFloat((row.lat || row.latitude || row.y));
+      const lon = parseFloat((row.lon || row.longitude || row.x));
+
       meters[post_id] = {
         coord: {
           lat: parseFloat((row.lat || row.latitude || row.y)),
           lon: parseFloat((row.lon || row.longitude || row.x)),
+          geohash: geohash.encode(lat, lon) 
         },
         price: {
           mon: Array(48).fill(0),
