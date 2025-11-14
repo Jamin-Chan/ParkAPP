@@ -126,7 +126,7 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     for (const row of blockfaceData){
       const blockface_id = parseFloat(row.blockface_id);
 
-      if (!blockface_id || !meters[blockface_id]) continue;
+    //if (!blockface_id || !meters[blockface_id]) continue;
 
 
       const lon1 = parseFloat(row.endpt1_longitude);
@@ -151,10 +151,10 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
           sat: Array(48).fill(0),
           sun: Array(48).fill(0),
         }
-      }
+      };
+      //console.log("current blockface: ", blocks[blockface_id]);
     }
 
-    console.log(blocks)
 
 
     // Process price data
@@ -250,6 +250,7 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     //   await setDoc(ref, meter);
     //console.log(meters)
     console.log("Sample row:", meters["221-32010"]);
+
 
     let batch = db.batch();
     let writeCount = 0;
