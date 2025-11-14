@@ -51,6 +51,7 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     console.log("Fetching CSV from SFMTA...");
     const meterLoc = "https://data.sfgov.org/resource/8vzz-qzz9.csv?$limit=99999999999";
     const meterPrice = "https://data.sfgov.org/resource/qq7v-hds4.csv?$limit=99999999999";
+    const blockfaceLoc = "https://data.sfgov.org/resource/mk27-a5x2.csv?$limit=99999999999";
 
     const response = await fetch(meterLoc);
     const csvText = await response.text();
@@ -58,9 +59,13 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     const response2 = await fetch(meterPrice);
     const csvText2 = await response2.text();
 
+    const responseBlockface = await fetch(blockfaceLoc);
+    const csvTextBLockface = await responseBlockface.text();
+
     console.log("Parsing CSV...");
     const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
     const parsed2 = Papa.parse(csvText2, { header: true, skipEmptyLines: true });
+    const parsedBlockface = Papa.parse(csvTextBLockface, { header: true, skipEmptyLines: true });
 
     if (!parsed || !parsed.data || !Array.isArray(parsed.data)) {
       throw new Error("CSV parse failed — invalid structure.");
@@ -68,36 +73,34 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     
     const locationData = parsed.data;
     const priceData = parsed2.data;
+    const blockfaceData = parsedBlockface.data;
 
     console.log(`✅ Parsed ${locationData.length} rows`);
     console.log(`✅ Parsed ${priceData.length} rows`);
+    console.log(`✅ Parsed ${blockfaceData.length} rows`);
     //console.log(`Fetched ${meterData.length} records`);
 
     // group by post_id
     const meters = {};
+    const blocks = {};
 
     for (const row of locationData) {
       const post_id = row.post_id;
       if (!post_id) continue;
 
-      const lat = parseFloat((row.lat || row.latitude || row.y));
-      const lon = parseFloat((row.lon || row.longitude || row.x));
+      // const lat = parseFloat((row.lat || row.latitude || row.y));
+      // const lon = parseFloat((row.lon || row.longitude || row.x));
+      const block_id = parseFloat((row.blockface_id));
 
       meters[post_id] = {
-        coord: {
-          lat: parseFloat((row.lat || row.latitude || row.y)),
-          lon: parseFloat((row.lon || row.longitude || row.x)),
-          geohash: geohash.encode(lat, lon) 
-        },
-        price: {
-          mon: Array(48).fill(0),
-          tues: Array(48).fill(0),
-          weds: Array(48).fill(0),
-          thurs: Array(48).fill(0),
-          fri: Array(48).fill(0),
-          sat: Array(48).fill(0),
-          sun: Array(48).fill(0),
-        },
+        block_id: block_id
+        // coord: {
+        //   lat1: 0,
+        //   lat2: 0,
+        //   lon1: 0,
+        //   lon2: 0
+        //   //geohash: geohash.encode(lat, lon)
+        // },
       };
     }
 
@@ -119,6 +122,41 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
       Su: "sun",
     };
 
+    //process blockid locations
+    for (const row of blockfaceData){
+      const blockface_id = parseFloat(row.blockface_id);
+
+      if (!blockface_id || !meters[blockface_id]) continue;
+
+
+      const lon1 = parseFloat(row.endpt1_longitude);
+      const lon2 = parseFloat(row.endpt2_longitude);
+      const lat1 = parseFloat(row.endpt1_latitude);
+      const lat2 = parseFloat(row.endpt2_latitude);
+
+
+      blocks[blockface_id] = {
+        coords: {
+          lat1: lat1,
+          lat2: lat2,
+          lon1: lon1,
+          lon2: lon2,
+        },
+        price: {
+          mon: Array(48).fill(0),
+          tues: Array(48).fill(0),
+          weds: Array(48).fill(0),
+          thurs: Array(48).fill(0),
+          fri: Array(48).fill(0),
+          sat: Array(48).fill(0),
+          sun: Array(48).fill(0),
+        }
+      }
+    }
+
+    console.log(blocks)
+
+
     // Process price data
     for (const row of priceData) {
       const post_id = row.postid;
@@ -134,19 +172,23 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
         // You can parse rate from another column — for example, "rate" or "price"
         const rate = parseFloat(row.hourlyrate || 0);
 
+        const block_id = meters[post_id].block_id
+        //console.log(block_id)
+        if (!block_id || !blocks[block_id]) continue;
+
         // Fill in half-hour blocks with rate
         for (let i = start; i < end; i++) {
-          meters[post_id].price[dayKey][i] = rate;
+          blocks[block_id].price[dayKey][i] = rate;
         }
       }
     }
 
-    const updatedMeters = {};
+    const updatedBlocks = {};
 
-    for (const [post_id, meter] of Object.entries(meters)) {
-      if (!post_id || !meter) continue;
+    for (const [block_id, block] of Object.entries(blocks)) {
+      if (!block_id || !block) continue;
 
-      const meterCopy = { ...meter };
+      const meterCopy = { ...block };
       const price = { ...meterCopy.price };
       
       // Check if all weekdays (Mon-Fri) have identical pricing
@@ -179,7 +221,7 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
       });
 
       // Update the meter with optimized price structure
-      updatedMeters[post_id] = {
+      updatedBlocks[block_id] = {
         ...meterCopy,
         price: price
       };
@@ -212,9 +254,9 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
     let batch = db.batch();
     let writeCount = 0;
 
-    for (const [post_id, meter] of Object.entries(updatedMeters)) {
-      const ref = db.collection("meters").doc(post_id);
-      batch.set(ref, meter);
+    for (const [block_id, block] of Object.entries(updatedBlocks)) {
+      const ref = db.collection("meters").doc(block_id);
+      batch.set(ref, block);
       writeCount++;
 
       // Commit every 500 writes
