@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Image, Alert, ActivityIndicator, Callout } from 'react-native'
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'expo-router'
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from 'expo-location';
 import { doc, getDoc, collection, getDocs, query, Timestamp, orderBy, limit} from "firebase/firestore";
 import { db } from '../../FirebaseConfig'
@@ -74,7 +74,7 @@ const Map = () => {
 
     try {
       console.log("fetching meters")
-      const snapshot = await getDocs(query(collection(db, 'meters'), limit(100))); //eRRRORRRRR HERRE
+      const snapshot = await getDocs(query(collection(db, 'meters'), limit(5000))); //eRRRORRRRR HERRE
       console.log("fetching meters ling")
       console.log(`Found ${snapshot.docs.length} documents`);
       
@@ -85,7 +85,7 @@ const Map = () => {
           const data = doc.data();
           metersArray.push({
             id: doc.id,
-            coord: data.coord || { lat: 0, lon: 0 },
+            coord: data.coords || { lat: 0, lon: 0 },
             price: data.price || {}
           });
         } catch (docError) {
@@ -95,6 +95,7 @@ const Map = () => {
       }
       
       console.log(`Successfully loaded ${metersArray.length} meters`);
+      //console.log(metersArray)
       setMeters(metersArray);
       
     } catch (error) {
@@ -164,8 +165,10 @@ const Map = () => {
           ref={mapRef}
           style={styles.map}
           initialRegion={{
-            latitude: testPin.coords.latitude,
-            longitude: testPin.coords?.longitude,
+            // latitude: testPin.coords.latitude,
+            // longitude: testPin.coords?.longitude,
+            latitude: 37.78825,    // Example: San Francisco
+            longitude: -122.4324,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
@@ -173,15 +176,21 @@ const Map = () => {
           followsUserLocation={false} // Optional: Map follows user's location as they move
         >
 
-          {meters.slice(0,10).map((meter) => (
-            <Marker
+          {meters.slice(0,1000).map((meter) => (
+            <Polyline
               key={meter.id}
-              coordinate={{
-                latitude: meter.coord?.lat || 0,
-                longitude: meter.coord?.lon || 0,
-              }}
-              title={meter.id}
-              description="Here’s a marker!"
+              coordinates={[
+                {
+                  latitude: meter.coord?.lat1 || 0,
+                  longitude: meter.coord?.lon1 || 0
+                },
+                {
+                  latitude: meter.coord?.lat2 || 0,
+                  longitude: meter.coord?.lon2 || 0
+                }
+              ]}
+              strokeWidth={4}
+              strokeColor="#0066ff"
             />
           ))}
         </MapView>
@@ -204,5 +213,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 5,
     boxShadow: '4px 4px rgba(0,0,0,0.1)'
+  },
+  center:{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 })
