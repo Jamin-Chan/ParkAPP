@@ -191,6 +191,12 @@ const Map = () => {
               ]}
               strokeWidth={4}
               strokeColor="#0066ff"
+              tappable={true}
+              onPress={() => {
+                Alert.alert(
+                  `Price right now: $${getCurrentPrice(meter.price)}`
+                );
+              }}
             />
           ))}
         </MapView>
@@ -218,5 +224,6 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
+    height: '100vh',
   }
 })
