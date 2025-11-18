@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image, Alert, ActivityIndicator, Callout } from 'react-native'
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { Link } from 'expo-router'
 import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from 'expo-location';
@@ -139,8 +139,6 @@ const Map = () => {
       </View>
     );
   }
-
-
   return (
     // <View style={styles.container}>
     //   <MapView
@@ -175,29 +173,36 @@ const Map = () => {
           showsUserLocation={true}
           followsUserLocation={false} // Optional: Map follows user's location as they move
         >
-
+          
           {meters.slice(0,1000).map((meter) => (
-            <Polyline
-              key={meter.id}
-              coordinates={[
+            <Fragment>
+              <Polyline
+                key={meter.id}
+                coordinates={[
                 {
-                  latitude: meter.coord?.lat1 || 0,
-                  longitude: meter.coord?.lon1 || 0
+                latitude: meter.coord?.lat1 || 0,
+                longitude: meter.coord?.lon1 || 0
                 },
                 {
-                  latitude: meter.coord?.lat2 || 0,
-                  longitude: meter.coord?.lon2 || 0
+                latitude: meter.coord?.lat2 || 0,
+                longitude: meter.coord?.lon2 || 0
                 }
-              ]}
-              strokeWidth={4}
-              strokeColor="#0066ff"
-              tappable={true}
-              onPress={() => {
+                ]}
+                strokeWidth={4}
+                strokeColor="#EA4335"
+                tappable={true}
+                onPress={() => {
                 Alert.alert(
                   `Price right now: $${getCurrentPrice(meter.price)}`
                 );
-              }}
-            />
+                }}
+              />
+              <Marker
+                coordinate={{ latitude: meter.midpoint?.midLat, longitude: meter.midpoint?.midLon }}
+                title="Current Price"
+                description="{`$${getCurrentPrice(meter.price)}`}" // causing [ReferenceError: Property 'price' doesn't exist] ?????
+              />
+            </Fragment>
           ))}
         </MapView>
       )}

@@ -150,6 +150,10 @@ exports.updateParkingRates = onSchedule("every 1 weeks", async (event) => {
           fri: Array(48).fill(0),
           sat: Array(48).fill(0),
           sun: Array(48).fill(0),
+        },
+        midpoint: {
+          midLat: (lat1+lat2)/2,
+          midLon: (lon1+lon2)/2,
         }
       };
       //console.log("current blockface: ", blocks[blockface_id]);
