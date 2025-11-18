@@ -86,6 +86,7 @@ const Map = () => {
           metersArray.push({
             id: doc.id,
             coord: data.coords || { lat: 0, lon: 0 },
+            midpoint: data.midpoint || { lat: 0, lon: 0 },
             price: data.price || {}
           });
         } catch (docError) {
@@ -125,8 +126,10 @@ const Map = () => {
       if (!prices || !Array.isArray(prices)) return 0;
 
       const price = prices[halfHourIndex] ?? 0;
+      return price;
     } catch (error){
       console.log("price error")
+      return 0;
     }
     return price;
   };
@@ -190,17 +193,20 @@ const Map = () => {
                 ]}
                 strokeWidth={4}
                 strokeColor="#EA4335"
-                tappable={true}
-                onPress={() => {
-                Alert.alert(
-                  `Price right now: $${getCurrentPrice(meter.price)}`
-                );
-                }}
+                // tappable={true}
+                // onPress={() => {
+                // Alert.alert(
+                //   `Price right now: $${getCurrentPrice(meter.price)}`
+                // );
+                //}}
               />
               <Marker
-                coordinate={{ latitude: meter.midpoint?.midLat, longitude: meter.midpoint?.midLon }}
+                coordinate={{ 
+                  latitude: meter.midpoint?.midLat,
+                  longitude: meter.midpoint?.midLon,
+                }}
                 title="Current Price"
-                description="{`$${getCurrentPrice(meter.price)}`}" // causing [ReferenceError: Property 'price' doesn't exist] ?????
+                description={`$${getCurrentPrice(meter.price)}`} // causing [ReferenceError: Property 'price' doesn't exist] ?????
               />
             </Fragment>
           ))}
